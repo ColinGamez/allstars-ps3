@@ -1,0 +1,46 @@
+# Build output
+build/
+out/
+*.obj
+*.pdb
+*.lib
+*.exe
+!tools/*.py
+
+# Generated lift output (regenerate locally, ~700MB)
+recompiled/
+spu/
+loader_out/
+analysis_*.json
+imports.json
+nids.txt
+resolved.json
+spu*.txt
+spu*.json
+run*.log
+
+# Game binaries and keys (NEVER commit - must own disc)
+*.iso
+*.dkey
+*.key
+*.ird
+*.elf
+*.dec
+*.BIN
+EBOOT*
+vfs/
+PS3_GAME/
+*.psarc
+*.sfo
+PARAM.SFO
+
+# Python
+__pycache__/
+*.pyc
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vs/
+.idea/
+*.user
