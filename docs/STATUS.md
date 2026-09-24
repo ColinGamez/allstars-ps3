@@ -89,8 +89,18 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   (2,1,0) — the queue fills AND drains, cycling forever. Livelock, not
   deadlock. Added `RWLOCK create` log: main creates 7 rwlocks then never
   reaches RPCS3's next steps (2MB alloc, SPU event setup, thread batch 2,
-  `PSASBRCACHE`, `global.psarc`). Next: disassemble the down-counter
-  `009A1D90` (op-completion side?) and find what should break the cycle.
+  `PSASBRCACHE`, `global.psarc`). Down-counter `009A1D90` disassembled
+  (17 instr: decrement count, `sys_lwmutex_unlock` only at zero) — healthy
+  drain-to-zero signaling confirmed.
+- 2026-09-25: lock/unlock audit (`PS3_HLE_TRACE=3000`): every lock paired
+  with unlock on the SAME mutex (balanced). 10 mutexes up front
+  (`0x02960C90-0x02960D30`, 40 bytes apart = slot-waiter `0099D7F4`'s
+  `base+40*index+8` array) + heap ones. Steady loop alternates two sites
+  across MANY mutexes = main polling an 8-slot worker barrier that never
+  fills. Verdict: NOT a sync bug — livelock with no work submitted.
+  Suspects: (a) silent HLE no-op in FIOS init (6x `sys_event_flag_clear`
+  stubs at boot!); (b) lost cond/event wakeup — audit `sys_lwcond_signal`
+  / `sys_event_flag_set` delivery next; (c) BE/LE-swapped readiness flag.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
