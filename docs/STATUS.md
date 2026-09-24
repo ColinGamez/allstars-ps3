@@ -35,11 +35,23 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
 
 ## Blockers (in order)
 
-1. **FIOS stall (current).** `PS3_FSLOG=1` shows zero file opens — dies in
-   thread sync first. `sys_lwcond` exists but FIOS worker conds report
-   "invalid", suggesting static BSS cond/mutex init isn't recognized.
-   Compare RPCS3 FIOS flow after scheduler creation; inspect the guest
-   cond object address (static vs dynamically created).
+1. **FIOS stall (current).** Threads (main + 2 media + scheduler) all run;
+   mutexes work — they ping-pong on `lwm=0x02960D80` in microsecond
+   critical sections forever. `PS3_SYSFSLOG=1` (new patch) proves **zero**
+   `sys_fs` open/stat/mkdir calls: workers never reach file I/O.
+   RPCS3 comparison shows what should happen next: mediathread stats +
+   creates `/dev_hdd1/PSASBRCACHE`, opens `cache.idx/dat`, main creates 4
+   more threads + `sys_rwlock`s, then opens `system/saveicon.png` and
+   `global.psarc`. Spin sites: main blocks at `lr=0x009A1E28`
+   (func `0x009A1DD4`, reentrant-mutex wrapper around `sys_lwmutex_lock`
+   NID `0x1573dc3f`); workers block at `lr=0x004AC46C`
+   (func `0x004AC438`, which compares two guest words `[r10+0x10]` vs
+   `[r11+8]` and takes the "invalid cond" path when they match).
+   Hypotheses, in order: (a) BE/LE flag misread in the FIOS cond struct
+   (same class as the `CellSyncMutex` ticket-lock bug); (b) a silent HLE
+   no-op during FIOS init leaves worker structs zeroed; (c) `sys_rwlock`
+   recursion semantics differ. Next: watch the two compared guest words
+   (PPU_WVAL) or trace which init write is missing vs RPCS3.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
