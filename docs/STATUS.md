@@ -74,10 +74,23 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   resolves to `sys_lwcond_wait` (NID `0x2a6d9d51`) — never reached, since
   workers take the count-zero branch first. `sys_ppu_thread_get_id`
   verified correct (real ctx thread ids). Callgraph built
-  (25,544 funcs, 1M edges): `0x009A1DD4` has 5 callers
+  (25,544 funcs, 1M edges):   `0x009A1DD4` has 5 callers
   (`009951D4/E0`, `0099D7F4/40`, `009B6E74`); `0x004ACADC` has 8
   (`0049F730`, `004A3550`, ...). Open question remains who fills
   cond+`0x10` — the FIOS submit path from main never runs.
+- 2026-09-25: widened `ppu_dump_guest_stack` code window `0x600000` ->
+  `0x1000000` (was hiding all 9MB+ game frames). Full main stack shows a
+  LIVE init loop, not a stuck thread:
+  `00075A50 → 0048AB30 → 004865C4 → 009D4624 → 004ABEEC → 009A559C →
+  00487898 → 009A3318 → ... → 0049930C → 0049D6C4 → 00499140 → 004A1800 →
+  004ACADC → 004ABA34 → 004AB9BC → 0024F35C`. `PPU_WWATCH=02960D70`
+  (main's FIOS object: `+0x0` count, `+0x8` owner) shows zero-init by
+  `009A1ED0`, count-ups by `009A1DD4` (1,2,3) and count-downs by `009A1D90`
+  (2,1,0) — the queue fills AND drains, cycling forever. Livelock, not
+  deadlock. Added `RWLOCK create` log: main creates 7 rwlocks then never
+  reaches RPCS3's next steps (2MB alloc, SPU event setup, thread batch 2,
+  `PSASBRCACHE`, `global.psarc`). Next: disassemble the down-counter
+  `009A1D90` (op-completion side?) and find what should break the cycle.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
