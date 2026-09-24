@@ -52,6 +52,19 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
    no-op during FIOS init leaves worker structs zeroed; (c) `sys_rwlock`
    recursion semantics differ. Next: watch the two compared guest words
    (PPU_WVAL) or trace which init write is missing vs RPCS3.
+- 2026-09-25: `TTY_BT=invalid cond` captured both backtraces
+  (`[CHAIN:tty-bt]`). Worker: `... 0099F004 004AB9BC 004ABA34 004ACADC
+  0049F730 004ABFF4`. Scheduler: `... 0099F004 004AB9BC 004ABA34 004ABFF4`.
+  Worker check (func `0x004ACADC`): `lwzu r0,0x10(r3)` — if the count word
+  at cond+`0x10` is zero, calls print (`0x4ABA34`) with format from TOC and
+  name from cond+`0x8` ("fios worker cond" / "scheduler.m_ioCond").
+  Main spin is func `0x009A1DD4` (reentrant-mutex wrapper: lock via
+  `sys_lwmutex_lock` NID `0x1573dc3f`, owner-tid in `+0x8`, count in `+0x0`).
+  Mutexes themselves are healthy (microsecond critical sections, all tids
+  progress); the guarded predicate never becomes true. `PS3_SYSFSLOG`
+  (new diag) confirms zero `sys_fs` open/stat/mkdir — stall is purely sync,
+  before any file I/O. RPCS3 divergence point: main should flow to
+  `sys_rwlock_create` + `/dev_hdd1/PSASBRCACHE` setup + 4 more threads.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
