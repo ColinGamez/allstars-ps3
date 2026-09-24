@@ -58,13 +58,26 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   Worker check (func `0x004ACADC`): `lwzu r0,0x10(r3)` — if the count word
   at cond+`0x10` is zero, calls print (`0x4ABA34`) with format from TOC and
   name from cond+`0x8` ("fios worker cond" / "scheduler.m_ioCond").
-  Main spin is func `0x009A1DD4` (reentrant-mutex wrapper: lock via
-  `sys_lwmutex_lock` NID `0x1573dc3f`, owner-tid in `+0x8`, count in `+0x0`).
-  Mutexes themselves are healthy (microsecond critical sections, all tids
-  progress); the guarded predicate never becomes true. `PS3_SYSFSLOG`
-  (new diag) confirms zero `sys_fs` open/stat/mkdir — stall is purely sync,
-  before any file I/O. RPCS3 divergence point: main should flow to
-  `sys_rwlock_create` + `/dev_hdd1/PSASBRCACHE` setup + 4 more threads.
+   Main spin is func `0x009A1DD4` (reentrant-mutex wrapper: lock via
+   `sys_lwmutex_lock` NID `0x1573dc3f`, owner-tid in `+0x8`, count in `+0x0`).
+   Mutexes themselves are healthy (microsecond critical sections, all tids
+   progress); the guarded predicate never becomes true. `PS3_SYSFSLOG`
+   (new diag) confirms zero `sys_fs` open/stat/mkdir — stall is purely sync,
+   before any file I/O. RPCS3 divergence point: main should flow to
+   `sys_rwlock_create` + `/dev_hdd1/PSASBRCACHE` setup + 4 more threads.
+- 2026-09-25: `PS3_HLE_TRACE=N` (first-N-calls boot trace) decoded the
+  steady loop: `sys_ppu_thread_get_id` (1368x) + `sys_lwmutex_lock` (764x) +
+  `sys_lwmutex_unlock` (757x). Boot order: ~10 `sys_lwmutex_create`, one
+  `sys_time_get_system_time`, then the two-site lock/unlock spin
+  (`lr=0x009A1E28` in `0x009A1DD4` + `lr=0x009A219C` in helper `0x009A2180`
+  which locks `object+448`). The `bl 0xB0D588` in the worker timeout path
+  resolves to `sys_lwcond_wait` (NID `0x2a6d9d51`) — never reached, since
+  workers take the count-zero branch first. `sys_ppu_thread_get_id`
+  verified correct (real ctx thread ids). Callgraph built
+  (25,544 funcs, 1M edges): `0x009A1DD4` has 5 callers
+  (`009951D4/E0`, `0099D7F4/40`, `009B6E74`); `0x004ACADC` has 8
+  (`0049F730`, `004A3550`, ...). Open question remains who fills
+  cond+`0x10` — the FIOS submit path from main never runs.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
