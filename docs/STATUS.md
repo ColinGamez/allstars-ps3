@@ -148,6 +148,12 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   and the barrier needs a submission to release. Circular stall rooted
   one level up — what main waits on BEFORE its first submit (likely the
   SPU/taskset readiness or the 2MB-alloc/event setup RPCS3 shows next).
+- 2026-09-25: thread-startup handshake HEALTHY; op-waiter `00497F08`
+  decoded (calls check `004AC430(obj+16)`, returns `[obj+0x44]`, main loops
+  on it). Dual-gate file-I/O test (`PS3_FSLOG=1` + `PS3_SYSFSLOG=1`):
+  ZERO opens/stats through all three layers — stall 100% pre-I/O,
+  airtight (`HLETRACE` covers every NID incl. ctx handlers; syscalls gated
+  separately). Remaining: the op-submission trigger main never reaches.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
