@@ -136,6 +136,18 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-25: allocator EXONERATED — lifted probe shows the virtual alloc
+  at `0049EE74+0x49EFD4` returns heap object `0x400321D0` (nonzero, once),
+  so `0049E5B0` init is entered with a valid object. Grep over the lift
+  for writers of `[global+0x10]`: only `004ABE38`/`004AC810` match the
+  read+write pattern, but both write `[r31+0x10]` (object field), merely
+  READING the global — no code writes the producer counter, and the
+  pointer slot (`[TOC+0x6B0]` = `0xC84E18`) is never swung either. The
+  submit path is absent from the executed code, not just skipped: main
+  never reaches op submission because it never leaves the barrier poll,
+  and the barrier needs a submission to release. Circular stall rooted
+  one level up — what main waits on BEFORE its first submit (likely the
+  SPU/taskset readiness or the 2MB-alloc/event setup RPCS3 shows next).
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
