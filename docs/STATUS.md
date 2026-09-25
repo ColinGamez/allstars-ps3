@@ -124,9 +124,18 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   (`0x40032270`) fills correctly (names, pointers, mutexes); worker area
   (`0x40046F00`) gets ONLY memset zeros (`009A1B60`, confirmed memset by
   disasm) — fill skipped via untaken branch. 2-core affinity: still spins
-  (not a startup race). `009A1B60` has 85 callers. Next: find the init
-  caller that memsets-then-skips-fill; its branch likely reads a failed
-  HLE result.
+  (not a startup race). `009A1B60` has 85 callers.
+- 2026-09-25: per-tid check values — ALL threads poll the SAME global
+  (`r10=0x00B11590`, `v1=0`, `v2=2`): main (3 objects), media (shared
+  `0x40032358`), scheduler (`0x400322B0/08`). Scheduler-init `0049E5B0`
+  (sole caller `0049EE74`) gates on a VIRTUAL call (`bctrl 0x49EFD4`):
+  nonzero → init, zero → skip. `0049E5B0` body is straight-line with
+  returning `bl`s, yet its count/field stores never land — implicating its
+  input config (`r5`/`r26` chain). `004ABEEC` (cond-init helper) has 11
+  callers; `0049E6B0`-region is mid-function (straight-line fall-through
+  from `0x49E640+`), not a separate entry. Next: capture the virtual-call
+  result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
+  `bctrl` target or WVAL the config struct).
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
