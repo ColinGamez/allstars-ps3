@@ -101,6 +101,19 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   Suspects: (a) silent HLE no-op in FIOS init (6x `sys_event_flag_clear`
   stubs at boot!); (b) lost cond/event wakeup — audit `sys_lwcond_signal`
   / `sys_event_flag_set` delivery next; (c) BE/LE-swapped readiness flag.
+- 2026-09-25: root-caused to the worker-count field. Worker check
+  (`004ACADC`) compares `[global+0x10]` vs `[arg+0x18]`; global is BSS
+  `0x00B11590` (pointer installed statically via `[TOC+0x6B0]`, never
+  written at runtime). Lifted-code probe: `v1=0` vs `v2=2` always.
+  `PPU_WWATCH` proves scheduler struct (`0x40032270`) fills correctly
+  (names incl. byte-built "fios scheduler 1", pointers, mutexes) while
+  worker area gets only memset zeros — the worker-init loops in FIOS init
+  (`0x49EB78`: `for i < [r31+0x178]: cond_init(..., 'fios worker cond')`)
+  are SKIPPED because count `[r31+0x178]` stays 0
+  (`PPU_WWATCH=400323E8`: zeroed, never set). Name pointers traced to TOC
+  slots (`0xC84AFC`/`0xC84B10`); fill sites `0x49E6C0` (scheduler, runs) vs
+  `0x49EB68` (workers, skipped). Next: find what computes `[r31+0x178]`
+  (worker count) — likely gated on an HLE/syscall result during FIOS init.
 - 2026-09-25: signal audit done — both layers look correct in isolation
   (`sysPrxForUser` real CV impl is SHADOWED: `ppu_sysprx` registers ctx
   no-op `signal`/`wait` for all `sys_lwmutex_*`/`sys_lwcond_*`, dispatched
