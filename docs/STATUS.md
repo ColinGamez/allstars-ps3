@@ -101,6 +101,19 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   Suspects: (a) silent HLE no-op in FIOS init (6x `sys_event_flag_clear`
   stubs at boot!); (b) lost cond/event wakeup — audit `sys_lwcond_signal`
   / `sys_event_flag_set` delivery next; (c) BE/LE-swapped readiness flag.
+- 2026-09-25: signal audit done — both layers look correct in isolation
+  (`sysPrxForUser` real CV impl is SHADOWED: `ppu_sysprx` registers ctx
+  no-op `signal`/`wait` for all `sys_lwmutex_*`/`sys_lwcond_*`, dispatched
+  first). But workers never reach `wait` (count-zero branch), so signals
+  are moot. Decisive probe (temporary lift patch, since reverted):
+  global `r10=0x00B11590`, `v1=[+0x10]=0` vs `v2=[+0x18]=2` — producer
+  counter stuck at 0, consumers expect 2. `PPU_WWATCH`: scheduler area
+  (`0x40032270`) fills correctly (names, pointers, mutexes); worker area
+  (`0x40046F00`) gets ONLY memset zeros (`009A1B60`, confirmed memset by
+  disasm) — fill skipped via untaken branch. 2-core affinity: still spins
+  (not a startup race). `009A1B60` has 85 callers. Next: find the init
+  caller that memsets-then-skips-fill; its branch likely reads a failed
+  HLE result.
 2. **SPU workload registration.** Images compile/link (symbol-prefixed)
    but no `spu_workloads.c` yet — `cellSpurs` dispatches by fingerprint,
    so jobs will miss until `build_spu_workloads.py` output is added.
