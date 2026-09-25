@@ -136,6 +136,18 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-25: `PS3_SCTRACE` syscall census (210 calls, ALL tid=1): mutex
+  create/lock/unlock balanced, 7x `SYS_RWLOCK_CREATE` (from `004AC944`
+  via `004A7C00`), 3x `SYS_MEMORY_ALLOCATE`, SPU init, event setup — then
+  main goes HLE-only forever. 70s `HLE_BT_EVERY` sampling: max tid 5 (no
+  batch 2), only 4 NIDs ever. Worker object (`0x40032358`) DOES get filled
+  (`FIOS`, name ptr, `mutex`, values 1/2/3) — but the `2/3/1` writes come
+  from HOST side (bogus `0x20002F00` attribution = HLE, likely
+  `sleep_queue` slot ids from mutex creation, not FIOS payload!). The
+  "expect=2" is probably a mutex slot id, reframing the check again.
+  Prints (`228k` in 30s) must fire at equal-valued sites. Next: identify
+  the host-side writer of `2/3/1` (match create-call order to slot ids)
+  and pin down the print site's Cell values.
 - 2026-09-25: allocator EXONERATED — lifted probe shows the virtual alloc
   at `0049EE74+0x49EFD4` returns heap object `0x400321D0` (nonzero, once),
   so `0049E5B0` init is entered with a valid object. Grep over the lift
