@@ -136,6 +136,17 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-26: init bisected to a ~20-instruction window — execution provably
+  reaches the `0x4AC820` cond-init calls (their name/magic writes land) but
+  never the `+0x1BC` stores two calls later, implicating the `0x4ABEEC`
+  call at `0x49E710` (its `sys_lwmutex_create` check gates print-vs-return;
+  our create always succeeds). `LWM_COUNT` shows 24 clean creates, no
+  duplicates. METHOD CORRECTION: `PPU_WWATCH` print cap (default 64)
+  makes post-cap silence look like "never written" — re-ran the global
+  watch with `PPU_WWATCH_MAX=0` (unlimited): still ZERO writes in 30s,
+  so the producer-counter conclusion stands on solid ground. Read-probes
+  (`CONDCHECK`) remain the source of truth for values; write-watches need
+  uncapped reruns before concluding absence.
 - 2026-09-26: pre-fill experiment (NEGATIVE result): seeded BSS global
   counter `*(0x00B115A0)=2` in `main.cpp` before `ppu_run` — boot
   UNCHANGED (336k invalid-cond prints, no batch 2, no sys_fs). Proves the
