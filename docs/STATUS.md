@@ -136,6 +136,17 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-26: pre-fill experiment (NEGATIVE result): seeded BSS global
+  counter `*(0x00B115A0)=2` in `main.cpp` before `ppu_run` — boot
+  UNCHANGED (336k invalid-cond prints, no batch 2, no sys_fs). Proves the
+  global is NOT the (only) gate: worker check `004ACADC`
+  (`[arg+0x10]==0` → print) is independent of the global check
+  (`004AC438`), and worker structs stay empty regardless. Reverted.
+  Reframed: TWO empty structs (BSS global + per-worker args), both
+  memset-only. Suspect BSS-vs-heap object mismatch — init fills one
+  instance, threads poll another (unpublished global link?). Next: map
+  which object each thread's arg chain resolves to and find the linking
+  pointer that should unify them.
 - 2026-09-25: `PS3_SCTRACE` syscall census (210 calls, ALL tid=1): mutex
   create/lock/unlock balanced, 7x `SYS_RWLOCK_CREATE` (from `004AC944`
   via `004A7C00`), 3x `SYS_MEMORY_ALLOCATE`, SPU init, event setup — then
