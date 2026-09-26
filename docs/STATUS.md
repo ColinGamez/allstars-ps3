@@ -178,10 +178,21 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   READING the global — no code writes the producer counter, and the
   pointer slot (`[TOC+0x6B0]` = `0xC84E18`) is never swung either. The
   submit path is absent from the executed code, not just skipped: main
-  never reaches op submission because it never leaves the barrier poll,
+  never reaches op submission because it   never leaves the barrier poll,
   and the barrier needs a submission to release. Circular stall rooted
   one level up — what main waits on BEFORE its first submit (likely the
   SPU/taskset readiness or the 2MB-alloc/event setup RPCS3 shows next).
+- 2026-09-26: cap-trap CONFIRMED biting: uncapped re-watch proves worker
+  structs ARE filled (names incl. "fios mediathread 2", pointers, mutexes
+  — 30 nonzero of 130). Init runs; workers are set up; "invalid cond"
+  prints are verbose-idle logging, not errors. Everyone idles correctly
+  with no work: game waits in FIOS pump, pump waits for game ops. The
+  first-op trigger is missing. LEAD: `PPU_THREADGATE` exists for exactly
+  this startup race (suspend workers till creator blocks) but releases
+  only on event-queue waits — our main only mutex-blocks, so it would
+  deadlock differently. Next: extend the gate to release on first
+  lwmutex-block (5-line change), letting main finish linking before
+  workers run.
 - 2026-09-25: thread-startup handshake HEALTHY; op-waiter `00497F08`
   decoded (calls check `004AC430(obj+16)`, returns `[obj+0x44]`, main loops
   on it). Dual-gate file-I/O test (`PS3_FSLOG=1` + `PS3_SYSFSLOG=1`):
