@@ -136,6 +136,15 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-26: ordering PROVEN correct — timestamp-ordered log: worker-struct
+  fills (names, scheduler ptr `0x400321D0`, OPDs, counts) land lines
+  114-134, threads start 137+. Race theory dead for good. Workers start
+  fully initialized yet find empty queues: the SUBMIT never happens. Game
+  path traced: `00075A50` (resource loader: memcpy + HLE stubs incl.
+  `cellSysCacheMount`) → `0007374C` (alloc 1072 + init via `004A7C00`) →
+  FIOS `0048AB30` → pump. Next: find the submit call in this chain and
+  its silent failure (suspect path-validation miss for All-Stars path
+  spellings, or a failed HLE result upstream of it).
 - 2026-09-26: removed dead pre-seed hack #2 (`*(0x400323E8)=1` in
   `main.cpp`, predates investigation): it wrote heap VM before ELF load,
   wiped by init memset — proven inert, was masking nothing. Gate test
