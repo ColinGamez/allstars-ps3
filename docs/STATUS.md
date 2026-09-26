@@ -136,6 +136,18 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-26: race theory DEAD — timestamp-ordered log proof: first
+  invalid print (line 144) is main; worker-struct fills land lines
+  192-233 (names incl. "fios mediathread 2/3", pointers, mutexes, counts);
+  threads start 238+. Order is CORRECT (fill before start). Uncapped watch
+  confirms full init. New model: TWO check sites — `004ACADC`
+  (`[arg+0x10]==0` → print, fires on genuinely-empty per-worker slots)
+  and `004AC430` (global vs expect → lock path, silent). Everyone idles
+  correctly; the FIRST OP (kick) never arrives because game main sits in
+  the FIOS pump waiting for completions of ops it never submitted. Next:
+  back up main's stack past the pump into game code (`00075A50` region)
+  to find the submission trigger — or check game-level gates (NP/Sail/
+  Trophy/Save) via long-window module-NID sampling.
 - 2026-09-26: init bisected to a ~20-instruction window — execution provably
   reaches the `0x4AC820` cond-init calls (their name/magic writes land) but
   never the `+0x1BC` stores two calls later, implicating the `0x4ABEEC`
