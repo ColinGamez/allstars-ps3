@@ -136,6 +136,13 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-26: removed dead pre-seed hack #2 (`*(0x400323E8)=1` in
+  `main.cpp`, predates investigation): it wrote heap VM before ELF load,
+  wiped by init memset — proven inert, was masking nothing. Gate test
+  (`PPU_THREADGATE=1` + release-on-main-block): workers suspend (zero
+  worker prints) but main spins `opWait` alone — no batch 2, no sys_fs.
+  Gate holds workers but nothing releases them usefully. RPCS3 oracle
+  rebooted (BCUS98472, past FIOS init) to compare menu-reaching behavior.
 - 2026-09-26: race theory DEAD — timestamp-ordered log proof: first
   invalid print (line 144) is main; worker-struct fills land lines
   192-233 (names incl. "fios mediathread 2/3", pointers, mutexes, counts);
