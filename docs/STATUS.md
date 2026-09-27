@@ -136,6 +136,11 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-27: `0049EE74` runs EXACTLY ONCE (`r3=0x40031D90`, lifted probe)
+  — single scheduler-init invocation, then main never returns from its
+  poll region. Full clean re-lift (25,544 funcs) + rebuild verified
+  bit-identical behavior (BCUS98472 → FIOS → spin). Tree pristine;
+  generated code confirmed unmodified from tools output.
 - 2026-09-26: ordering PROVEN correct — timestamp-ordered log: worker-struct
   fills (names, scheduler ptr `0x400321D0`, OPDs, counts) land lines
   114-134, threads start 137+. Race theory dead for good. Workers start
