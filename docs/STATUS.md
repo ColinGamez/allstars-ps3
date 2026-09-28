@@ -136,6 +136,14 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-29: print attribution via `func_004ABA34` probe (reverted):
+  main prints `opWait`, workers print `fios worker cond` — different
+  objects, same zero-count pattern. Model now precise: structs get
+  names/pointers/mutexes but never counts; the count-setter
+  (`0x49E74C`, `r24=1`) runs only inside scheduler-init `0049E5B0`,
+  which fires once for one object while multiple need it. Next: get the
+  count-setter to cover every polled object (second init invocation or
+  widened init loop).
 - 2026-09-29: gate-bypass NEGATIVE — forced worker check to skip-path in
   lift (reverted): zero change (342k prints, no batch 2). The lock path
   was never the blocker (balanced anyway); the print path (`004ACADC`,
