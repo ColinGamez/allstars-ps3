@@ -136,6 +136,14 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-28: op-waiter probed directly (temporary lift patch, reverted):
+  `00497F08` entered EXACTLY TWICE (both tid=1): first `[obj+0x44]=0`,
+  then `=0x400321D0` (scheduler object linked!). Main moves on; the field
+  IS set, yet main still never leaves its barrier poll and workers never
+  get ops. So the op link exists but nothing flows: main waits downstream
+  (global counter still 0, uncapped-verified) while holding a completed
+  op it never hands off. Next: find main's loop-exit condition in
+  `00075A50`'s branches and what consumes a completed op.
 - 2026-09-27: `0049EE74` runs EXACTLY ONCE (`r3=0x40031D90`, lifted probe)
   — single scheduler-init invocation, then main never returns from its
   poll region. Full clean re-lift (25,544 funcs) + rebuild verified
