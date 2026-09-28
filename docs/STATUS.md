@@ -136,6 +136,13 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-29: SUBMIT proven — FIOS core `0048AB30` entered EXACTLY ONCE
+  (`r3obj=0x40047010`, tid=1, lifted probe, reverted). Main then never
+  returns: stuck in its internal poll loop (`0x48AEA0 bne → 0x48AC2C`,
+  exits only when pending-count `r21==0`). One op submitted, never
+  completed, workers never drain it. The wait is for that single op.
+  Next: find where `0048AB30` links the op (queue head store) and which
+  queue workers actually drain — the two addresses will differ.
 - 2026-09-28: game-side exit decoded — `00075A50` checks `0x74A1C` result
   (`-3`/`-1` → early return) then `cellSysCacheMount` result (`!=1` →
   fresh-cache path at `0x75C48`). RPCS3 reference: `CLEARED=0` (fresh) /
