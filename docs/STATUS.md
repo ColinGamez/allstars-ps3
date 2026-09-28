@@ -136,6 +136,13 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-28: game-side exit decoded — `00075A50` checks `0x74A1C` result
+  (`-3`/`-1` → early return) then `cellSysCacheMount` result (`!=1` →
+  fresh-cache path at `0x75C48`). RPCS3 reference: `CLEARED=0` (fresh) /
+  `RELAYED=1` (reuse) — matches our flow, not divergent. FIXED ours to
+  report bare `/dev_hdd1` as `getCachePath` like RPCS3 (was suffixed
+  `/dev_hdd1/cache/<id>`). Did not unblock (as expected — spin is
+  pre-path), but correct regardless. Patch now 7 files.
 - 2026-09-28: op-waiter probed directly (temporary lift patch, reverted):
   `00497F08` entered EXACTLY TWICE (both tid=1): first `[obj+0x44]=0`,
   then `=0x400321D0` (scheduler object linked!). Main moves on; the field
