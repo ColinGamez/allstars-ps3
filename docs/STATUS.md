@@ -136,6 +136,16 @@ Zero `unresolved NID` (was 8 on first HLE-stub-less lift).
   from `0x49E640+`), not a separate entry. Next: capture the virtual-call
   result at `0049EE74+0x49EFD4` and the `r5` config value (probe the
   `bctrl` target or WVAL the config struct).
+- 2026-09-29: gate-bypass NEGATIVE — forced worker check to skip-path in
+  lift (reverted): zero change (342k prints, no batch 2). The lock path
+  was never the blocker (balanced anyway); the print path (`004ACADC`,
+  different site) dominates. WVAL+range proved the single op link
+  (`[0x4003131C] <- op` by `00497970`) — exactly one heap link in 30s.
+  Reframed: main submits once via `0007374C` (alloc-1072 + `004A7C00` +
+  `0048AB30`) then parks in its wait loop; workers never drain because
+  the op isn't visible where they poll. Next: verify the alloc succeeds
+  (heap health) and trace where the op SHOULD be linked for workers
+  (submit-failure vs wrong-queue).
 - 2026-09-29: SUBMIT proven — FIOS core `0048AB30` entered EXACTLY ONCE
   (`r3obj=0x40047010`, tid=1, lifted probe, reverted). Main then never
   returns: stuck in its internal poll loop (`0x48AEA0 bne → 0x48AC2C`,
